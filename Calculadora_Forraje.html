@@ -1,0 +1,228 @@
+<title>Calculadora de Forraje</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Herramienta de campo: una columna, números grandes, resultado fijo abajo. Verde pasto como acento, ámbar solo para alertas. */
+:root{--bg:#f4f6f1;--panel:#ffffff;--ink:#1d2a1f;--mute:#5c6b5e;--line:#d5dccf;--acc:#2f6b3a;--acc-ink:#ffffff;--in:#fffbe8;--warn:#9a5b00;--warn-bg:#fff0d1;--bad:#a4261c;--bad-bg:#fde4e1;--ok-bg:#e3f1e2;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a14;--panel:#1b261d;--ink:#e8efe6;--mute:#9fb0a2;--line:#2e3d31;--acc:#7fc48b;--acc-ink:#0f1a11;--in:#232d1d;--warn:#f0b455;--warn-bg:#3a2d12;--bad:#ff8f84;--bad-bg:#3d1b18;--ok-bg:#1f3322;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121a14;--panel:#1b261d;--ink:#e8efe6;--mute:#9fb0a2;--line:#2e3d31;--acc:#7fc48b;--acc-ink:#0f1a11;--in:#232d1d;--warn:#f0b455;--warn-bg:#3a2d12;--bad:#ff8f84;--bad-bg:#3d1b18;--ok-bg:#1f3322;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-block:12px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:1.25rem;margin:0}
+.sub{color:var(--mute);font-size:.85rem;margin:2px 0 0}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+h2{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:0}
+label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--mute);min-width:0}
+input,select{font:inherit;font-size:1.1rem;color:var(--ink);background:var(--in);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%;min-width:0;min-height:46px}
+select{background:var(--panel)}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.row{align-items:end;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.samp{border-top:1px dashed var(--line);padding-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.samp b{grid-column:1/-1;font-size:.85rem}
+.area{font-size:.9rem;color:var(--mute)}
+.res{position:sticky;bottom:0;background:var(--panel);border:2px solid var(--acc);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 -6px 14px rgba(0,0,0,.12)}
+.big{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.big .k{font-size:.85rem;color:var(--mute)}
+.big .v{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--acc)}
+.big .v small{font-size:1rem;font-weight:600}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:.9rem}
+.grid span:nth-child(odd){color:var(--mute)}
+.grid span:nth-child(even){text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.msg{border-radius:8px;padding:8px 10px;font-size:.88rem}
+.msg.w{background:var(--warn-bg);color:var(--warn)}
+.msg.b{background:var(--bad-bg);color:var(--bad)}
+.msg.o{background:var(--ok-bg);color:var(--ink)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{font:inherit;font-weight:600;min-height:46px;border-radius:8px;border:1px solid var(--acc);background:var(--panel);color:var(--acc);padding:8px 10px}
+button.p{background:var(--acc);color:var(--acc-ink)}
+details summary{cursor:pointer;font-weight:600;min-height:36px;display:flex;align-items:center}
+.hist{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.85rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mute);font-weight:600}
+.tiny{font-size:.8rem;color:var(--mute)}
+</style>
+<main>
+<header><h1>Calculadora de forraje</h1><p class="sub">Materia seca disponible y fibra a suplementar en canoa</p></header>
+
+<section>
+<h2>Potrero y vacas</h2>
+<div class="row">
+<label>Fecha<input id="fecha" type="date"></label>
+<label>Potrero<select id="pot"></select></label>
+</div>
+<div class="area" id="areaTxt"></div>
+<div class="row">
+<label>Vacas en pastoreo<input id="vacas" type="number" inputmode="numeric" min="1" step="1" value="45"></label>
+<label>Cobertura del forraje (%)<input id="cob" type="number" inputmode="decimal" min="0" max="100" step="1" value="100"></label>
+</div>
+<div class="row">
+<label>Materia seca del pasto (%)<input id="ms" type="number" inputmode="decimal" step="0.1" value="13"></label>
+<label>Aprovechamiento (%)<input id="apr" type="number" inputmode="decimal" step="1" value="35"></label>
+</div>
+</section>
+
+<section>
+<h2>Muestras del cuadro</h2>
+<p class="tiny" style="margin:0">Escriba el peso en gramos de cada corte. Si deja vacío el % del potrero, se reparte en partes iguales entre las muestras con peso.</p>
+<div class="samp"><b>Muestra 1</b><label>Peso (g)<input id="p1" type="number" inputmode="decimal" step="any"></label><label>% del potrero<input id="q1" type="number" inputmode="decimal" step="any"></label><label>Altura (cm)<input id="a1" type="number" inputmode="decimal" step="any"></label><label>Hojas<input id="h1" type="number" inputmode="numeric" step="1"></label></div>
+<div class="samp"><b>Muestra 2</b><label>Peso (g)<input id="p2" type="number" inputmode="decimal" step="any"></label><label>% del potrero<input id="q2" type="number" inputmode="decimal" step="any"></label><label>Altura (cm)<input id="a2" type="number" inputmode="decimal" step="any"></label><label>Hojas<input id="h2" type="number" inputmode="numeric" step="1"></label></div>
+<div class="samp"><b>Muestra 3</b><label>Peso (g)<input id="p3" type="number" inputmode="decimal" step="any"></label><label>% del potrero<input id="q3" type="number" inputmode="decimal" step="any"></label><label>Altura (cm)<input id="a3" type="number" inputmode="decimal" step="any"></label><label>Hojas<input id="h3" type="number" inputmode="numeric" step="1"></label></div>
+</section>
+
+<section>
+<details>
+<summary>Ajustes de suplementación</summary>
+<div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+<div class="row">
+<label>Meta de MS por vaca (kg/día)<input id="meta" type="number" inputmode="decimal" step="0.1" value="12"></label>
+<label>Cuadro de muestreo (m²)<input id="cuadro" type="number" inputmode="decimal" step="0.01" value="0.25"></label>
+</div>
+<label>Fibra en canoa
+<select id="fibraSel"><option value="88.5">Paca de arroz (88.5% MS)</option><option value="90">Heno (90% MS)</option><option value="">Otra (escribir % de MS)</option></select></label>
+<label>Materia seca de la fibra (%)<input id="msf" type="number" inputmode="decimal" step="0.1" value="88.5"></label>
+<label>Separador decimal al copiar a Excel<select id="dec"><option value=",">Coma (1,5)</option><option value=".">Punto (1.5)</option></select></label>
+<p class="tiny" style="margin:0">La meta de 12 kg es un valor de partida. Cámbiela por la que use su nutricionista. Los ajustes quedan guardados en este teléfono.</p>
+</div>
+</details>
+</section>
+
+<div id="msgs" style="display:flex;flex-direction:column;gap:6px"></div>
+
+<div class="res" aria-live="polite">
+<div class="big"><span class="k">Fibra a poner en canoa (tal como se ofrece)</span><span class="v" id="rFib">–</span></div>
+<div class="grid">
+<span>MS a suplementar por vaca</span><span id="rSupV">–</span>
+<span>MS a suplementar total</span><span id="rSupT">–</span>
+<span>MS aprovechable por vaca</span><span id="rMsV">–</span>
+<span>Forraje fresco total</span><span id="rMf">–</span>
+<span>MS por hectárea</span><span id="rHa">–</span>
+</div>
+<div class="btns">
+<button class="p" id="btnSave">Guardar medición</button>
+<button id="btnWa">Copiar para WhatsApp</button>
+</div>
+</div>
+
+<section>
+<h2>Mediciones guardadas</h2>
+<div class="btns">
+<button id="btnTsv">Copiar filas para Excel</button>
+<button id="btnClear">Borrar guardadas</button>
+</div>
+<div id="clearConf" hidden class="msg w">¿Borrar todas las mediciones guardadas en este teléfono? <button id="btnClearYes" style="margin-top:6px">Sí, borrar</button> <button id="btnClearNo">Cancelar</button></div>
+<div id="copyStatus" class="tiny" aria-live="polite"></div>
+<div class="hist" id="hist"></div>
+<p class="tiny" style="margin:0">En Excel, pegue en la primera celda vacía de la columna Fecha de la hoja Mediciones. Las filas siguen el orden de esas columnas.</p>
+</section>
+</main>
+<script>
+var POTREROS = [["A 01", 863], ["A 02", 768], ["A 03", 799], ["A 04", 870], ["A 05", 868], ["A 06", 833], ["A 07", 792], ["A 08", 709], ["A 09", 672], ["A 10", 707], ["A 11", 736], ["A 12", 896], ["A 13", 907], ["A 14", 1061], ["A 15", 1025], ["A 15 (2)", 875], ["A 16", 969], ["A 17", 850], ["A 18", 962], ["A 19", 854], ["A 20", 1238], ["A 21", 927], ["A 22", 907], ["A 23", 910], ["A 24", 823], ["A 25", 742], ["A 26", 853], ["A 27", 755], ["B 01", 1681], ["B 02", 1410], ["B 03", 1591], ["B 04", 1773], ["B 05", 1734], ["B 06", 1890], ["B 07", 1524], ["B 08", 1762], ["B 09", 1627], ["B 10", 1900], ["B 11", 1991], ["B 12", 1774], ["B 13", 1838], ["B 14", 1638], ["B 15", 1774], ["B 16", 1694], ["B 17", 1545], ["B 18", 1500], ["B 19", 1710], ["B 20", 1842], ["B 21", 1671], ["B 22", 1616], ["B 23", 2093], ["B 24", 1948], ["B 25", 1441], ["B 26", 1833], ["B 27", 1506], ["B 28", 1604], ["B 29", 2004], ["B 30", 1717], ["B 31", 2205], ["B 32", 1574], ["B 33", 1237], ["B 34", 1692], ["B 35", 1722]];
+var $ = function(id){return document.getElementById(id)};
+var NUM = function(v){var n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:null};
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+
+function calc(inp){
+  var cuadro=inp.cuadro||0.25, area=inp.area||0;
+  var s=inp.m.filter(function(x){return x.peso!=null&&x.peso>0});
+  var pcs=s.map(function(x){return x.pc});
+  var anyPc=pcs.some(function(v){return v!=null});
+  var eq=s.length?1/s.length:0;
+  var pcUse=s.map(function(x){return (anyPc&&x.pc!=null)?x.pc/100:(anyPc?0:eq)});
+  var sumPc=pcUse.reduce(function(a,b){return a+b},0);
+  var suma=0,k;
+  for(k=0;k<s.length;k++) suma+=(s[k].peso/cuadro)*area*pcUse[k];
+  var cob=(inp.cob==null?100:inp.cob)/100;
+  var mf=suma/1000*cob;
+  var ms=inp.ms/100, apr=inp.apr/100;
+  var mfap=mf*apr, msap=mfap*ms;
+  var msv=inp.vacas>0?msap/inp.vacas:null;
+  var supv=msv==null?null:Math.max(0,inp.meta-msv);
+  var supt=supv==null?null:supv*inp.vacas;
+  var fib=supt==null?null:supt/(inp.msf/100);
+  return {mf:mf,msha:area>0?mf/area*10000*ms:null,mfap:mfap,msap:msap,msv:msv,supv:supv,supt:supt,fib:fib,sumPc:sumPc,n:s.length,pcUse:pcUse,s:s};
+}
+if(typeof module!=='undefined') module.exports={calc:calc};
+
+function fmt(n,d){return n==null||!isFinite(n)?'–':n.toLocaleString('es-CR',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function areaOf(name){for(var i=0;i<POTREROS.length;i++)if(POTREROS[i][0]===name)return POTREROS[i][1];return 0}
+function readInputs(){
+  var m=[];
+  for(var i=1;i<=3;i++) m.push({peso:NUM($('p'+i).value),pc:NUM($('q'+i).value),alt:NUM($('a'+i).value),hoja:NUM($('h'+i).value)});
+  return {pot:$('pot').value,area:areaOf($('pot').value),vacas:NUM($('vacas').value)||0,cob:NUM($('cob').value),ms:NUM($('ms').value)||0,apr:NUM($('apr').value)||0,
+    meta:NUM($('meta').value)||0,cuadro:NUM($('cuadro').value)||0.25,msf:NUM($('msf').value)||88.5,m:m,fecha:$('fecha').value};
+}
+var last=null;
+function render(){
+  var inp=readInputs(); last={inp:inp,r:calc(inp)}; var r=last.r;
+  $('areaTxt').textContent=inp.area?('Área del potrero: '+fmt(inp.area,0)+' m²'):'Este potrero no tiene área registrada.';
+  var has=r.n>0&&inp.area>0&&inp.vacas>0;
+  $('rFib').innerHTML=has?fmt(r.fib,1)+' <small>kg</small>':'–';
+  $('rSupV').textContent=has?fmt(r.supv,2)+' kg MS':'–';
+  $('rSupT').textContent=has?fmt(r.supt,1)+' kg MS':'–';
+  $('rMsV').textContent=has?fmt(r.msv,2)+' kg MS':'–';
+  $('rMf').textContent=has?fmt(r.mf,0)+' kg':'–';
+  $('rHa').textContent=has?fmt(r.msha,0)+' kg MS/ha':'–';
+  var msgs=[];
+  if(!r.n) msgs.push(['b','Escriba el peso de al menos una muestra.']);
+  if(r.n&&Math.abs(r.sumPc-1)>0.001) msgs.push(['b','Los % de las muestras suman '+fmt(r.sumPc*100,0)+'%. Deben sumar 100%.']);
+  if(inp.ms<5||inp.ms>40) msgs.push(['w','La materia seca del pasto está fuera de lo normal (5% a 40%).']);
+  if(has&&r.supv===0) msgs.push(['o','El pasto cubre la meta. No hace falta suplementar en este potrero.']);
+  if(has&&r.msv<inp.meta*0.1) msgs.push(['w','Casi no hay pasto aprovechable. Revise los pesos y la cobertura.']);
+  $('msgs').innerHTML=msgs.map(function(x){return '<div class="msg '+x[0]+'">'+x[1]+'</div>'}).join('');
+  saveSettings();
+}
+var SET=['vacas','cob','ms','apr','meta','cuadro','msf','fibraSel','dec','pot'];
+function saveSettings(){var o={};SET.forEach(function(k){o[k]=$(k).value});store('forraje_set',JSON.stringify(o))}
+function loadSettings(){var o=null;try{o=JSON.parse(store('forraje_set'))}catch(e){}if(o)SET.forEach(function(k){if(o[k]!=null&&k!=='pot')$(k).value=o[k]});return o}
+
+function getHist(){try{return JSON.parse(store('forraje_hist'))||[]}catch(e){return[]}}
+function setHist(h){store('forraje_hist',JSON.stringify(h))}
+function isoToDmy(s){if(!s)return '';var p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function decs(v){var d=$('dec').value;var s=String(v);return d===','?s.replace('.',','):s}
+function pctStr(f){return decs(Math.round(f*1e9)/1e7)+'%'}
+function tsvRow(h){
+  var i=h.inp,r=h.r,c=[isoToDmy(i.fecha),i.pot,i.vacas,pctStr(i.ms/100),decs(i.cob==null?1:i.cob/100),pctStr(i.apr/100)];
+  var k=0;
+  for(var j=0;j<3;j++){var x=i.m[j];var used=x.peso!=null&&x.peso>0;
+    c.push(x.alt==null?'':decs(x.alt),x.peso==null?'':decs(x.peso),x.hoja==null?'':x.hoja,used?pctStr(r.pcUse[k++]):'');}
+  c.push('');
+  return c.join('\t');
+}
+function copyText(t,msg){
+  function done(){$('copyStatus').textContent=msg}
+  function fb(){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}document.body.removeChild(ta);if(ok)done();else $('copyStatus').textContent='No se pudo copiar. Mantenga presionado el texto para copiarlo.'}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,fb)}else fb();
+}
+function renderHist(){
+  var h=getHist();
+  if(!h.length){$('hist').innerHTML='<p class="tiny">Aún no hay mediciones guardadas.</p>';return}
+  var rows=h.slice().reverse().map(function(x){return '<tr><td>'+isoToDmy(x.inp.fecha)+'</td><td>'+x.inp.pot+'</td><td>'+fmt(x.r.msv,2)+'</td><td>'+fmt(x.r.supv,2)+'</td><td>'+fmt(x.r.fib,0)+'</td></tr>'}).join('');
+  $('hist').innerHTML='<table><thead><tr><th>Fecha</th><th>Potrero</th><th>MS/vaca</th><th>Suplem./vaca</th><th>Fibra kg</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+$('btnSave').onclick=function(){
+  if(!last.r.n||!last.inp.area||!last.inp.vacas){$('copyStatus').textContent='Complete potrero, vacas y al menos una muestra antes de guardar.';return}
+  var h=getHist();h.push(JSON.parse(JSON.stringify(last)));setHist(h);renderHist();$('copyStatus').textContent='Medición guardada.';
+};
+$('btnTsv').onclick=function(){var h=getHist();if(!h.length){$('copyStatus').textContent='No hay mediciones guardadas.';return}copyText(h.map(tsvRow).join('\n'),'Copiadas '+h.length+' filas. Péguelas en la hoja Mediciones.')};
+$('btnWa').onclick=function(){
+  var i=last.inp,r=last.r;
+  if(!r.n||!i.area||!i.vacas){$('copyStatus').textContent='Complete los datos primero.';return}
+  var t='Forraje '+i.pot+' ('+isoToDmy(i.fecha)+')\nVacas: '+i.vacas+'\nMS aprovechable por vaca: '+fmt(r.msv,2)+' kg\nA suplementar: '+fmt(r.supv,2)+' kg MS por vaca ('+fmt(r.supt,1)+' kg MS en total)\nFibra en canoa: '+fmt(r.fib,1)+' kg tal como se ofrece';
+  copyText(t,'Texto copiado. Péguelo en WhatsApp.');
+};
+$('btnClear').onclick=function(){$('clearConf').hidden=false};
+$('btnClearNo').onclick=function(){$('clearConf').hidden=true};
+$('btnClearYes').onclick=function(){setHist([]);renderHist();$('clearConf').hidden=true;$('copyStatus').textContent='Mediciones borradas.'};
+$('fibraSel').onchange=function(){if($('fibraSel').value)$('msf').value=$('fibraSel').value;render()};
+
+(function init(){
+  $('pot').innerHTML=POTREROS.map(function(p){return '<option>'+p[0]+'</option>'}).join('');
+  var o=loadSettings(); if(o&&o.pot)$('pot').value=o.pot;
+  var d=new Date();$('fecha').value=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  document.querySelectorAll('input,select').forEach(function(e){e.addEventListener('input',render);e.addEventListener('change',render)});
+  renderHist();render();
+})();
+</script>
