@@ -1,0 +1,267 @@
+<title>Calculadora de Forraje</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Herramienta de campo: una columna, números grandes, resultado fijo abajo. Verde pasto como acento, ámbar solo para alertas. */
+:root{--bg:#f4f6f1;--panel:#ffffff;--ink:#1d2a1f;--mute:#5c6b5e;--line:#d5dccf;--acc:#2f6b3a;--acc-ink:#ffffff;--in:#fffbe8;--warn:#9a5b00;--warn-bg:#fff0d1;--bad:#a4261c;--bad-bg:#fde4e1;--ok-bg:#e3f1e2;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a14;--panel:#1b261d;--ink:#e8efe6;--mute:#9fb0a2;--line:#2e3d31;--acc:#7fc48b;--acc-ink:#0f1a11;--in:#232d1d;--warn:#f0b455;--warn-bg:#3a2d12;--bad:#ff8f84;--bad-bg:#3d1b18;--ok-bg:#1f3322;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121a14;--panel:#1b261d;--ink:#e8efe6;--mute:#9fb0a2;--line:#2e3d31;--acc:#7fc48b;--acc-ink:#0f1a11;--in:#232d1d;--warn:#f0b455;--warn-bg:#3a2d12;--bad:#ff8f84;--bad-bg:#3d1b18;--ok-bg:#1f3322;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-block:12px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:1.25rem;margin:0}
+.sub{color:var(--mute);font-size:.85rem;margin:2px 0 0}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+h2{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:0}
+label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--mute);min-width:0}
+input,select{font:inherit;font-size:1.1rem;color:var(--ink);background:var(--in);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%;min-width:0;min-height:46px}
+select{background:var(--panel)}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.tag{display:inline-block;font-size:.75rem;font-weight:700;border-radius:6px;padding:2px 8px;background:var(--acc);color:var(--acc-ink);margin-right:6px}
+.samp{border-top:1px dashed var(--line);padding-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.samp b{grid-column:1/-1;font-size:.85rem}
+.area{font-size:.9rem;color:var(--mute)}
+.res{position:sticky;bottom:0;background:var(--panel);border:2px solid var(--acc);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 -6px 14px rgba(0,0,0,.12)}
+.big{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.big .k{font-size:.85rem;color:var(--mute)}
+.big .v{font-size:2rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--acc)}
+.big .v small{font-size:1rem;font-weight:600}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:.9rem}
+.grid span:nth-child(odd){color:var(--mute)}
+.grid span:nth-child(even){text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.msg{border-radius:8px;padding:8px 10px;font-size:.88rem}
+.msg.w{background:var(--warn-bg);color:var(--warn)}
+.msg.b{background:var(--bad-bg);color:var(--bad)}
+.msg.o{background:var(--ok-bg);color:var(--ink)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{font:inherit;font-weight:600;min-height:46px;border-radius:8px;border:1px solid var(--acc);background:var(--panel);color:var(--acc);padding:8px 10px}
+button.p{background:var(--acc);color:var(--acc-ink)}
+details summary{cursor:pointer;font-weight:600;min-height:36px;display:flex;align-items:center}
+.hist{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.85rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mute);font-weight:600}
+.tiny{font-size:.8rem;color:var(--mute)}
+</style>
+<main>
+<header><h1>Calculadora de forraje</h1><p class="sub">Cada día las vacas comen un potrero A y un potrero B. Mida los dos y la calculadora suma lo que aportan.</p></header>
+
+<section>
+<h2>Datos del día</h2>
+<div class="row">
+<label>Fecha<input id="fecha" type="date"></label>
+<label>Vacas en pastoreo<input id="vacas" type="number" inputmode="numeric" min="1" step="1" value="45"></label>
+</div>
+</section>
+
+<div id="blocks" style="display:flex;flex-direction:column;gap:14px"></div>
+
+<section>
+<details>
+<summary>Ajustes de suplementación</summary>
+<div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+<div class="row">
+<label>Meta de MS por vaca (kg/día)<input id="meta" type="number" inputmode="decimal" step="0.1" value="12"></label>
+<label>Cuadro de muestreo (m²)<input id="cuadro" type="number" inputmode="decimal" step="0.01" value="0.25"></label>
+</div>
+<label>Fibra en canoa
+<select id="fibraSel"><option value="88.5">Paca de arroz (88.5% MS)</option><option value="90">Heno (90% MS)</option><option value="">Otra (escribir % de MS)</option></select></label>
+<label>Materia seca de la fibra (%)<input id="msf" type="number" inputmode="decimal" step="0.1" value="88.5"></label>
+<label>Separador decimal al copiar a Excel<select id="dec"><option value=",">Coma (1,5)</option><option value=".">Punto (1.5)</option></select></label>
+<div><b style="font-size:.9rem">Materia seca de referencia por mes</b><p class="tiny" style="margin:2px 0 8px">Sale de los análisis de laboratorio. Cambie cualquier valor y se usará al elegir la fecha. Los meses sin análisis usan el promedio de todos.</p><div id="refTbl"></div><button id="refReset" style="margin-top:8px;width:100%">Volver a los valores del análisis</button></div>
+<p class="tiny" style="margin:0">La meta de 12 kg es un valor de partida. Cámbiela por la que use su nutricionista. Los ajustes quedan guardados en este teléfono.</p>
+</div>
+</details>
+</section>
+
+<div id="msgs" style="display:flex;flex-direction:column;gap:6px"></div>
+
+<div class="res" aria-live="polite">
+<div class="big"><span class="k">Fibra a poner en canoa (tal como se ofrece)</span><span class="v" id="rFib">–</span></div>
+<div class="grid">
+<span>MS aprovechable por vaca, potrero A</span><span id="rA">–</span>
+<span>MS aprovechable por vaca, potrero B</span><span id="rB">–</span>
+<span>Total de A + B por vaca</span><span id="rT">–</span>
+<span>Meta por vaca</span><span id="rMeta">–</span>
+<span>MS a suplementar por vaca</span><span id="rSupV">–</span>
+<span>MS a suplementar total</span><span id="rSupT">–</span>
+</div>
+<div class="btns">
+<button class="p" id="btnSave">Guardar medición</button>
+<button id="btnWa">Copiar para WhatsApp</button>
+</div>
+</div>
+
+<section>
+<h2>Mediciones guardadas</h2>
+<div class="btns">
+<button id="btnTsv">Copiar filas para Excel</button>
+<button id="btnClear">Borrar guardadas</button>
+</div>
+<div id="clearConf" hidden class="msg w">¿Borrar todas las mediciones guardadas en este teléfono? <button id="btnClearYes" style="margin-top:6px">Sí, borrar</button> <button id="btnClearNo">Cancelar</button></div>
+<div id="copyStatus" class="tiny" aria-live="polite"></div>
+<div class="hist" id="hist"></div>
+<p class="tiny" style="margin:0">En Excel, pegue en la primera celda vacía de la columna Fecha de la hoja Mediciones. Cada día genera dos filas, una del potrero A y otra del B, en el orden de esas columnas.</p>
+</section>
+</main>
+<script>
+var REF0 = {"A": [11.5, 11.5, 11.6, 11.2, 11.5, 11.5, 10.8, 11.5, 11.5, 11.5, 11.6, 13.0], "B": [13.7, 13.7, 12.8, 13.0, 13.7, 13.7, 13.7, 13.7, 13.7, 13.7, 13.7, 16.7], "nA": [0, 0, 1, 3, 0, 0, 1, 0, 0, 0, 2, 1], "nB": [0, 0, 1, 3, 0, 0, 0, 0, 0, 0, 0, 1]};
+var POTREROS = [["A 01", 863], ["A 02", 768], ["A 03", 799], ["A 04", 870], ["A 05", 868], ["A 06", 833], ["A 07", 792], ["A 08", 709], ["A 09", 672], ["A 10", 707], ["A 11", 736], ["A 12", 896], ["A 13", 907], ["A 14", 1061], ["A 15", 1025], ["A 15 (2)", 875], ["A 16", 969], ["A 17", 850], ["A 18", 962], ["A 19", 854], ["A 20", 1238], ["A 21", 927], ["A 22", 907], ["A 23", 910], ["A 24", 823], ["A 25", 742], ["A 26", 853], ["A 27", 755], ["B 01", 1681], ["B 02", 1410], ["B 03", 1591], ["B 04", 1773], ["B 05", 1734], ["B 06", 1890], ["B 07", 1524], ["B 08", 1762], ["B 09", 1627], ["B 10", 1900], ["B 11", 1991], ["B 12", 1774], ["B 13", 1838], ["B 14", 1638], ["B 15", 1774], ["B 16", 1694], ["B 17", 1545], ["B 18", 1500], ["B 19", 1710], ["B 20", 1842], ["B 21", 1671], ["B 22", 1616], ["B 23", 2093], ["B 24", 1948], ["B 25", 1441], ["B 26", 1833], ["B 27", 1506], ["B 28", 1604], ["B 29", 2004], ["B 30", 1717], ["B 31", 2205], ["B 32", 1574], ["B 33", 1237], ["B 34", 1692], ["B 35", 1722]];
+var $ = function(id){return document.getElementById(id)};
+var NUM = function(v){var n=parseFloat(String(v).replace(',','.'));return isFinite(n)?n:null};
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+
+function calc(inp){
+  var cuadro=inp.cuadro||0.25, area=inp.area||0;
+  var s=inp.m.filter(function(x){return x.peso!=null&&x.peso>0});
+  var anyPc=s.some(function(x){return x.pc!=null});
+  var eq=s.length?1/s.length:0;
+  var pcUse=s.map(function(x){return (anyPc&&x.pc!=null)?x.pc/100:(anyPc?0:eq)});
+  var sumPc=pcUse.reduce(function(a,b){return a+b},0);
+  var suma=0,k;
+  for(k=0;k<s.length;k++) suma+=(s[k].peso/cuadro)*area*pcUse[k];
+  var cob=(inp.cob==null?100:inp.cob)/100;
+  var mf=suma/1000*cob;
+  var ms=inp.ms/100, apr=inp.apr/100;
+  var mfap=mf*apr, msap=mfap*ms;
+  var msv=inp.vacas>0?msap/inp.vacas:null;
+  return {mf:mf,msha:area>0?mf/area*10000*ms:null,mfap:mfap,msap:msap,msv:msv,sumPc:sumPc,n:s.length,pcUse:pcUse};
+}
+function dia(rA,rB,meta,vacas,msf){
+  var tot=(rA.msv==null||rB.msv==null)?null:rA.msv+rB.msv;
+  var supv=tot==null?null:Math.max(0,meta-tot);
+  var supt=supv==null?null:supv*vacas;
+  return {tot:tot,supv:supv,supt:supt,fib:supt==null?null:supt/(msf/100)};
+}
+if(typeof module!=='undefined') module.exports={calc:calc,dia:dia};
+
+function fmt(n,d){return n==null||!isFinite(n)?'–':n.toLocaleString('es-CR',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function areaOf(name){for(var i=0;i<POTREROS.length;i++)if(POTREROS[i][0]===name)return POTREROS[i][1];return 0}
+var GR=['A','B'];
+var MESES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+var REF=JSON.parse(JSON.stringify(REF0)), dirty={A:false,B:false};
+function loadRef(){try{var o=JSON.parse(store('forraje_ref'));if(o&&o.A&&o.B&&o.A.length===12&&o.B.length===12){REF.A=o.A;REF.B=o.B}}catch(e){}}
+function saveRef(){store('forraje_ref',JSON.stringify({A:REF.A,B:REF.B}))}
+function buildRef(){
+  var h='<div class="hist"><table><thead><tr><th>Mes</th><th>A (%)</th><th>B (%)</th></tr></thead><tbody>';
+  for(var i=0;i<12;i++) h+='<tr><td>'+MESES[i]+' <span class="tiny">('+REF0.nA[i]+'/'+REF0.nB[i]+')</span></td><td><input id="refA'+i+'" type="number" inputmode="decimal" step="0.1" style="min-height:38px;padding:6px;width:80px" value="'+REF.A[i]+'"></td><td><input id="refB'+i+'" type="number" inputmode="decimal" step="0.1" style="min-height:38px;padding:6px;width:80px" value="'+REF.B[i]+'"></td></tr>';
+  $('refTbl').innerHTML=h+'</tbody></table></div><p class="tiny" style="margin:4px 0 0">Entre paréntesis: número de análisis en A y en B.</p>';
+  for(var j=0;j<12;j++){(function(j){['A','B'].forEach(function(g){$('ref'+g+j).addEventListener('input',function(){var v=NUM(this.value);if(v!=null&&v>0){REF[g][j]=v;saveRef();render()}})})})(j)}
+}
+function monthOf(){var f=$('fecha').value;var m=parseInt((f||'').slice(5,7),10);return m>=1&&m<=12?m-1:null}
+function autoMs(){
+  var m=monthOf();
+  GR.forEach(function(g){
+    if(m==null){$(g+'refTxt').textContent='';return}
+    var v=REF[g][m],n=REF0['n'+g][m];
+    if(!dirty[g])$(g+'ms').value=v;
+    var cur=NUM($(g+'ms').value);
+    $(g+'refTxt').innerHTML='Referencia de '+MESES[m]+': '+fmt(v,1)+'% ('+(n?n+(n===1?' análisis':' análisis'):'sin análisis ese mes, promedio general')+')'+(cur!==v?' <a href="#" data-g="'+g+'" class="useRef" style="color:var(--acc);font-weight:600">Usar</a>':'');
+  });
+}
+function block(g){
+  var s='';
+  for(var i=1;i<=3;i++) s+='<div class="samp"><b>Muestra '+i+'</b><label>Peso (g)<input id="'+g+'p'+i+'" type="number" inputmode="decimal" step="any"></label><label>% del potrero<input id="'+g+'q'+i+'" type="number" inputmode="decimal" step="any"></label><label>Altura (cm)<input id="'+g+'a'+i+'" type="number" inputmode="decimal" step="any"></label><label>Hojas<input id="'+g+'h'+i+'" type="number" inputmode="numeric" step="1"></label></div>';
+  return '<section><h2><span class="tag">'+g+'</span>Potrero del grupo '+g+'</h2>'+
+  '<label>Potrero<select id="'+g+'pot"></select></label><div class="area" id="'+g+'area"></div>'+
+  '<div class="row"><label>Cobertura del forraje (%)<input id="'+g+'cob" type="number" inputmode="decimal" min="0" max="100" step="1" value="100"></label>'+
+  '<label>Materia seca del pasto (%)<input id="'+g+'ms" type="number" inputmode="decimal" step="0.1" value="13"></label></div>'+'<div class="tiny" id="'+g+'refTxt"></div>'+
+  '<label>Aprovechamiento (%)<input id="'+g+'apr" type="number" inputmode="decimal" step="1" value="35"></label>'+
+  '<p class="tiny" style="margin:0">Peso en gramos de cada corte. Si deja vacío el % del potrero, se reparte en partes iguales entre las muestras con peso.</p>'+s+'</section>';
+}
+function readG(g){
+  var m=[];
+  for(var i=1;i<=3;i++) m.push({peso:NUM($(g+'p'+i).value),pc:NUM($(g+'q'+i).value),alt:NUM($(g+'a'+i).value),hoja:NUM($(g+'h'+i).value)});
+  return {pot:$(g+'pot').value,area:areaOf($(g+'pot').value),cob:NUM($(g+'cob').value),ms:NUM($(g+'ms').value)||0,apr:NUM($(g+'apr').value)||0,
+    vacas:NUM($('vacas').value)||0,cuadro:NUM($('cuadro').value)||0.25,m:m};
+}
+var last=null;
+function render(){
+  autoMs();
+  var inp={fecha:$('fecha').value,vacas:NUM($('vacas').value)||0,meta:NUM($('meta').value)||0,msf:NUM($('msf').value)||88.5,A:readG('A'),B:readG('B')};
+  var rA=calc(inp.A), rB=calc(inp.B), d=dia(rA,rB,inp.meta,inp.vacas,inp.msf);
+  last={inp:inp,rA:rA,rB:rB,d:d};
+  GR.forEach(function(g){var a=inp[g].area;$(g+'area').textContent=a?('Área del potrero: '+fmt(a,0)+' m²'):'Este potrero no tiene área registrada.'});
+  var ok=function(g){return last['r'+g].n>0&&inp[g].area>0&&inp.vacas>0};
+  $('rA').textContent=ok('A')?fmt(rA.msv,2)+' kg':'–';
+  $('rB').textContent=ok('B')?fmt(rB.msv,2)+' kg':'–';
+  var both=ok('A')&&ok('B');
+  $('rT').textContent=both?fmt(d.tot,2)+' kg':'–';
+  $('rMeta').textContent=fmt(inp.meta,1)+' kg';
+  $('rSupV').textContent=both?fmt(d.supv,2)+' kg MS':'–';
+  $('rSupT').textContent=both?fmt(d.supt,1)+' kg MS':'–';
+  $('rFib').innerHTML=both?fmt(d.fib,1)+' <small>kg</small>':'–';
+  var msgs=[];
+  GR.forEach(function(g){var r=last['r'+g];
+    if(!r.n) msgs.push(['b','Falta el peso de al menos una muestra del potrero '+g+'.']);
+    else if(Math.abs(r.sumPc-1)>0.001) msgs.push(['b','Potrero '+g+': los % de las muestras suman '+fmt(r.sumPc*100,0)+'%. Deben sumar 100%.']);
+    if(inp[g].ms<5||inp[g].ms>40) msgs.push(['w','Potrero '+g+': la materia seca está fuera de lo normal (5% a 40%).']);
+  });
+  if(!inp.vacas) msgs.push(['b','Escriba el número de vacas.']);
+  if(both&&d.supv===0) msgs.push(['o','Entre los dos potreros cubren la meta. No hace falta suplementar.']);
+  if(both&&d.tot<inp.meta*0.1) msgs.push(['w','Casi no hay pasto aprovechable. Revise los pesos y la cobertura.']);
+  $('msgs').innerHTML=msgs.map(function(x){return '<div class="msg '+x[0]+'">'+x[1]+'</div>'}).join('');
+  saveSettings();
+}
+var SET=['vacas','meta','cuadro','msf','fibraSel','dec','Acob','Aapr','Bcob','Bapr'];
+function saveSettings(){var o={Apot:$('Apot').value,Bpot:$('Bpot').value};SET.forEach(function(k){o[k]=$(k).value});store('forraje_set2',JSON.stringify(o))}
+function loadSettings(){var o=null;try{o=JSON.parse(store('forraje_set2'))}catch(e){}if(o)SET.forEach(function(k){if(o[k]!=null)$(k).value=o[k]});return o}
+
+function getHist(){try{return JSON.parse(store('forraje_hist2'))||[]}catch(e){return[]}}
+function setHist(h){store('forraje_hist2',JSON.stringify(h))}
+function isoToDmy(s){if(!s)return '';var p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function decs(v){var d=$('dec').value;var s=String(v);return d===','?s.replace('.',','):s}
+function pctStr(f){return decs(Math.round(f*1e9)/1e7)+'%'}
+function tsvRow(h,g){
+  var i=h.inp[g],r=h['r'+g],c=[isoToDmy(h.inp.fecha),i.pot,h.inp.vacas,pctStr(i.ms/100),decs(i.cob==null?1:i.cob/100),pctStr(i.apr/100)];
+  var k=0;
+  for(var j=0;j<3;j++){var x=i.m[j];var used=x.peso!=null&&x.peso>0;
+    c.push(x.alt==null?'':decs(x.alt),x.peso==null?'':decs(x.peso),x.hoja==null?'':x.hoja,used?pctStr(r.pcUse[k++]):'');}
+  c.push('');
+  return c.join('\t');
+}
+function copyText(t,msg){
+  function done(){$('copyStatus').textContent=msg}
+  function fb(){var ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy')}catch(e){}document.body.removeChild(ta);if(ok)done();else $('copyStatus').textContent='No se pudo copiar. Mantenga presionado el texto para copiarlo.'}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,fb)}else fb();
+}
+function renderHist(){
+  var h=getHist();
+  if(!h.length){$('hist').innerHTML='<p class="tiny">Aún no hay mediciones guardadas.</p>';return}
+  var rows=h.slice().reverse().map(function(x){return '<tr><td>'+isoToDmy(x.inp.fecha)+'</td><td>'+x.inp.A.pot+' + '+x.inp.B.pot+'</td><td>'+fmt(x.d.tot,2)+'</td><td>'+fmt(x.d.supv,2)+'</td><td>'+fmt(x.d.fib,0)+'</td></tr>'}).join('');
+  $('hist').innerHTML='<table><thead><tr><th>Fecha</th><th>Potreros</th><th>MS/vaca</th><th>Suplem./vaca</th><th>Fibra kg</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+function complete(){return last.rA.n&&last.rB.n&&last.inp.A.area&&last.inp.B.area&&last.inp.vacas}
+$('btnSave').onclick=function(){
+  if(!complete()){$('copyStatus').textContent='Complete los dos potreros, las vacas y al menos una muestra en cada uno antes de guardar.';return}
+  var h=getHist();h.push(JSON.parse(JSON.stringify(last)));setHist(h);renderHist();$('copyStatus').textContent='Medición guardada.';
+};
+$('btnTsv').onclick=function(){var h=getHist();if(!h.length){$('copyStatus').textContent='No hay mediciones guardadas.';return}
+  var rows=[];h.forEach(function(x){rows.push(tsvRow(x,'A'));rows.push(tsvRow(x,'B'))});
+  copyText(rows.join('\n'),'Copiadas '+rows.length+' filas ('+h.length+' días). Péguelas en la hoja Mediciones.')};
+$('btnWa').onclick=function(){
+  if(!complete()){$('copyStatus').textContent='Complete los datos de los dos potreros primero.';return}
+  var i=last.inp,d=last.d;
+  var t='Forraje '+isoToDmy(i.fecha)+'\nPotreros: '+i.A.pot+' y '+i.B.pot+'\nVacas: '+i.vacas+'\nMS por vaca: '+fmt(last.rA.msv,2)+' kg (A) + '+fmt(last.rB.msv,2)+' kg (B) = '+fmt(d.tot,2)+' kg\nA suplementar: '+fmt(d.supv,2)+' kg MS por vaca ('+fmt(d.supt,1)+' kg MS en total)\nFibra en canoa: '+fmt(d.fib,1)+' kg tal como se ofrece';
+  copyText(t,'Texto copiado. Péguelo en WhatsApp.');
+};
+$('btnClear').onclick=function(){$('clearConf').hidden=false};
+$('btnClearNo').onclick=function(){$('clearConf').hidden=true};
+$('btnClearYes').onclick=function(){setHist([]);renderHist();$('clearConf').hidden=true;$('copyStatus').textContent='Mediciones borradas.'};
+
+(function init(){
+  $('blocks').innerHTML=block('A')+block('B');
+  GR.forEach(function(g){$(g+'pot').innerHTML=POTREROS.filter(function(p){return p[0].charAt(0)===g}).map(function(p){return '<option>'+p[0]+'</option>'}).join('')});
+  loadRef();buildRef();
+  GR.forEach(function(g){$(g+'ms').addEventListener('input',function(){dirty[g]=true})});
+  document.addEventListener('click',function(e){var t=e.target;if(t&&t.className==='useRef'){e.preventDefault();dirty[t.getAttribute('data-g')]=false;render()}});
+  $('refReset').onclick=function(){REF.A=REF0.A.slice();REF.B=REF0.B.slice();saveRef();buildRef();GR.forEach(function(g){dirty[g]=false});render()};
+  $('fibraSel').onchange=function(){if($('fibraSel').value)$('msf').value=$('fibraSel').value;render()};
+  var o=loadSettings(); if(o){if(o.Apot)$('Apot').value=o.Apot;if(o.Bpot)$('Bpot').value=o.Bpot}
+  var d=new Date();$('fecha').value=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  document.querySelectorAll('input,select').forEach(function(e){e.addEventListener('input',render);e.addEventListener('change',render)});
+  renderHist();render();
+})();
+</script>
